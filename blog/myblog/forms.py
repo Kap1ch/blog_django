@@ -25,3 +25,18 @@ class CommentForm(forms.Form):
     comment = forms.CharField(required=False, widget=forms.Textarea(attrs={"class": "form-control",
                                                                            "id": "comments",
                                                                            "rows": "3"}))
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(widget=forms.TextInput(attrs={
+        "id": "inputLogin",
+        " class": "form-control",
+        " placeholder": "Логин",
+    }))
+    password = forms.CharField(widget=forms.PasswordInput(
+        attrs={
+            "type": "password",
+            "id": "inputPassword",
+            "class": "form-control",
+            "placeholder": "Пароль"
+        }))

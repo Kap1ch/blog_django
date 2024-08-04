@@ -1,15 +1,40 @@
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.db.models import Count
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 # Create your views here.
 from taggit.models import Tag
 
-from .forms import EmailPostForm, CommentForm
+from .forms import EmailPostForm, CommentForm, LoginForm
 from .models import Post, PostPoint, Comment
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
 
 
+def user_login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            user = authenticate(request,
+                                username=cd['username'],
+                                password=cd['password'])
+            if user is not None:
+                if user.is_active:
+                    login(request, user)
+                    return HttpResponse('Authenticated successfully')
+                else:
+                    return HttpResponse('Disabled account')
+            else:
+                return HttpResponse('Invalid login')
+    else:
+        form = LoginForm()
+    return render(request, 'blog/account/login.html', {'form': form})
+
+
+@login_required
 def post_list(request, tag_slug=None):
     object_list = Post.objects.all()
     tag = None
@@ -81,3 +106,8 @@ def post_share(request, post_id):
         form = EmailPostForm()
     return render(request, 'blog/post/share.html',
                   {'post': post, 'form': form, 'sent': sent})
+
+
+@login_required
+def dashboard(request):
+    return render(request, 'blog/account/dashboard.html', )
