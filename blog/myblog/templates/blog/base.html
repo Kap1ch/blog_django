@@ -32,7 +32,13 @@
                 <a href="{% url 'myblog:dashboard' %}" class="pr-3">
                     {{ request.user.first_name }}
                 </a>
-                <a href="{% url 'myblog:logout' %}">Выйти</a>
+<!--                <a method="post" href="{% url 'myblog:logout' %}">Выйти</a>-->
+                <form method="POST" action="{% url 'myblog:logout' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">
+                        Выйти
+                    </button>
+                </form>
             {% else %}
                 <a href="{% url 'myblog:login' %}">Войти</a>
             {% endif %}

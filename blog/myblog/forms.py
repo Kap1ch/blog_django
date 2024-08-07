@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 
 from .models import Post, PostPoint
 
@@ -54,3 +55,19 @@ class PostPointForm(forms.ModelForm):
     class Meta:
         model = PostPoint
         fields = ('post_header', 'post_point_text', 'post_images')
+
+
+class UserCreateForm(forms.ModelForm):
+    password = forms.CharField(max_length=40, widget=forms.PasswordInput())
+
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name',
+                  'username', 'email', 'password')
+
+
+class UserEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ('first_name', 'last_name',
+                  'username', 'email')

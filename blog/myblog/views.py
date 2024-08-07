@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models import Count
 from django.http import HttpResponse
@@ -7,7 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 # Create your views here.
 from taggit.models import Tag
 
-from .forms import EmailPostForm, CommentForm, LoginForm, PostForm, PostPointForm
+from .forms import EmailPostForm, CommentForm, LoginForm, PostForm, PostPointForm, UserEditForm, UserCreateForm
 from .models import Post, PostPoint, Comment
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
@@ -218,3 +219,31 @@ def post_point_delete(request, post_point_id):
         return redirect('myblog:post_point_list', post_id=post_point.post.id)
     except PostPoint.DoesNotExist:
         return redirect('myblog:post_list')
+
+
+def sign_up(request):
+    user_form = UserCreateForm()
+    if request.method == 'POST':
+        user_form = UserCreateForm(request.POST)
+        if user_form.is_valid():
+            new_user = User.objects.create_user(**user_form.cleaned_data)
+            new_user.save()
+            login(request, authenticate(username=user_form.cleaned_data['username'],
+                                        password=user_form.cleaned_data['password']))
+            return redirect('myblog:post_list')
+    return render(request, 'registration/sign_up.html', {'user_form': user_form})
+
+
+@login_required
+def edit_profile(request):
+    user_form = UserEditForm(
+        instance=request.user)
+    if request.method == 'POST':
+        user_form = UserEditForm(
+            request.POST,
+            instance=request.user)
+        if user_form.is_valid():
+            user_form.save()
+    return render(request,
+                  'blog/account/profile.html',
+                  {'user_form': user_form})
