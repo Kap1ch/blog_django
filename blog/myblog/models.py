@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.urls import reverse
+from slugify import slugify
 from taggit.managers import TaggableManager
 
 
@@ -31,10 +32,14 @@ class Post(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('blog:post_detail', args=[self.publish.year,
+        return reverse('myblog:post_detail', args=[self.publish.year,
                                                  self.publish.month,
                                                  self.publish.day,
                                                  self.slug])
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.title)
+        return super(Post, self).save(*args, **kwargs)
 
 
 def save_images(instance, filename):

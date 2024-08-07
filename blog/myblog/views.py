@@ -3,11 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.db.models import Count
 from django.http import HttpResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 # Create your views here.
 from taggit.models import Tag
 
-from .forms import EmailPostForm, CommentForm, LoginForm
+from .forms import EmailPostForm, CommentForm, LoginForm, PostForm
 from .models import Post, PostPoint, Comment
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
@@ -111,3 +111,54 @@ def post_share(request, post_id):
 @login_required
 def dashboard(request):
     return render(request, 'blog/account/dashboard.html', )
+
+
+@login_required
+def dashboard(request):
+    user = request.user
+    posts_pub = Post.objects.filter(author=user, status='published')
+    posts_draft = Post.objects.filter(author=user, status='draft')
+    return render(request, 'blog/account/dashboard.html', {'posts_pub': posts_pub,
+                                                           'posts_draft': posts_draft})
+
+
+@login_required
+def post_add(request):
+    user = request.user
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = user
+            post.save()
+            for tag in form.cleaned_data['tags']:
+                post.tags.add(tag)
+    else:
+        form = PostForm()
+
+    return render(request, 'blog/account/post_add.html', {'form': form})
+
+
+@login_required
+def post_edit(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    post_edit_form = PostForm(instance=post)
+    if request.method == 'POST':
+        post_edit_form = PostForm(request.POST, request.FILES, instance=post)
+        if post_edit_form.is_valid():
+            post_edit_form.save()
+    return render(request,
+                  'blog/account/post_edit.html',
+                  {'form': post_edit_form,
+                   'post': post})
+
+
+@login_required
+def post_delete(request, post_id):
+    try:
+        post = get_object_or_404(Post,
+                                 id=post_id)
+        post.delete()
+        return redirect('myblog:dashboard')
+    except Post.DoesNotExist:
+        return redirect('myblog:dashboard')
