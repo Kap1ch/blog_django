@@ -8,7 +8,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 # Create your views here.
 from taggit.models import Tag
 
-from .forms import EmailPostForm, CommentForm, LoginForm, PostForm, PostPointForm, UserEditForm, UserCreateForm
+from .forms import EmailPostForm, CommentForm, LoginForm, PostForm, PostPointForm, UserEditForm, UserCreateForm, \
+    SearchForm
 from .models import Post, PostPoint, Comment
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
@@ -37,7 +38,19 @@ def user_login(request):
 
 @login_required
 def post_list(request, tag_slug=None):
-    object_list = Post.objects.all()
+    search_form = SearchForm()
+    query = None
+
+    if 'query' in request.GET:
+        search_form = SearchForm(request.GET)
+        if search_form.is_valid():
+            query = search_form.cleaned_data['query']
+            try:
+                object_list = Post.objects.filter(title__contains=query, status='published')
+            except:
+                object_list = None
+    else:
+        object_list = Post.objects.filter(status='published')
     tag = None
     if tag_slug:
         tag = get_object_or_404(Tag, slug=tag_slug)
@@ -51,8 +64,10 @@ def post_list(request, tag_slug=None):
         posts = paginator.page(1)
     except EmptyPage:
         posts = paginator.page(paginator.num_pages)
-
-    return render(request, 'blog/post/list.html', {'page': page, 'posts': posts})
+    return render(request, 'blog/post/list.html', {'page': page,
+                                                   'posts': posts,
+                                                   'tag': tag,
+                                                   'search_form': search_form})
 
 
 class PostListView(ListView):
@@ -62,11 +77,12 @@ class PostListView(ListView):
     template_name = 'blog/post/list.html'
 
 
-def post_detail(request, year, month, day, post):
+def post_detail(request, year, month, day, post, post_id):
     post_object = get_object_or_404(Post, slug=post, status='published',
                                     publish__year=year,
                                     publish__month=month,
-                                    publish__day=day)
+                                    publish__day=day,
+                                    id=post_id)
     post_points = PostPoint.objects.filter(post=post_object)
     comments = post_object.comment.filter(active=True)
     new_comment = None
@@ -247,3 +263,33 @@ def edit_profile(request):
     return render(request,
                   'blog/account/profile.html',
                   {'user_form': user_form})
+
+
+def add_to_favourite(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    post.favourite.add(request.user)
+    return redirect('myblog:post_detail', year=post.publish.year,
+                    month=post.publish.month,
+                    day=post.publish.day,
+                    post=post.slug,
+                    post_id=post.id)
+
+
+def delete_from_favourite(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    post.favourite.remove(request.user)
+    return redirect('myblog:post_detail', year=post.publish.year,
+                    month=post.publish.month,
+                    day=post.publish.day,
+                    post=post.slug,
+                    post_id=post.id)
+
+
+def delete_from_favourite_in_dashboard(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    post.favourite.remove(request.user)
+    return redirect('myblog:favourite_posts')
+
+
+def favourite_posts(request):
+    return render(request, 'blog/account/fav_posts.html', {})
